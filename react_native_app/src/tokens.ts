@@ -1,19 +1,20 @@
-import type { TextStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 
 export const color = {
-  ink: '#14181B',
-  ink2: '#5A6467',
-  ink3: '#8A9497',
-  paper: '#F6F7F6',
+  ink: '#16161D',
+  ink2: '#6B6B76',
+  ink3: '#9A9AA8',
+  paper: '#F3F3F8',
   surface: '#FFFFFF',
-  rule: '#E1E6E1',
-  accent: '#0B5049',
+  rule: '#ECECF2',
+  accent: '#5B4CFF',
   accentInk: '#FFFFFF',
-  accentSoft: '#E0ECE9',
-  positive: '#2C6136',
+  accentSoft: '#EEEAFF',
+  navy: '#1A1464',
+  positive: '#1F8A4C',
   warning: '#8A5B06',
-  critical: '#8A2E2E',
-  criticalSoft: '#F7E7E5',
+  critical: '#C0392B',
+  criticalSoft: '#F8E8E6',
 } as const;
 
 export const space = {
@@ -26,28 +27,37 @@ export const space = {
   s7: 48,
 } as const;
 
-export const radius = 12;
+export const radius = 20;
+export const radiusButton = 24;
+
+export const shadow = {
+  shadowColor: '#16161D',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.08,
+  shadowRadius: 12,
+  elevation: 3,
+} satisfies ViewStyle;
 
 // Mirrors design/tokens.json. The production app uses a licensed typeface
 // that is not included in the take-home, so these use the platform default.
 export const type = {
   display: {
-    fontSize: 34,
-    lineHeight: 39,
-    fontWeight: '600',
+    fontSize: 36,
+    lineHeight: 40,
+    fontWeight: '700',
     color: color.ink,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
   },
   title: {
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '600',
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700',
     color: color.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.4,
   },
   heading: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: '600',
     color: color.ink,
   },
@@ -70,16 +80,15 @@ export const type = {
     color: color.ink2,
   },
   label: {
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '600',
-    color: color.ink3,
-    letterSpacing: 0.8,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+    color: color.ink2,
   },
   numeric: {
-    fontSize: 15,
-    lineHeight: 21,
-    fontWeight: '400',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '500',
     color: color.ink,
     fontVariant: ['tabular-nums'],
   },
