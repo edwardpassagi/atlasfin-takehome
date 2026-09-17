@@ -1,0 +1,11 @@
+{
+  "name": "atlas-takehome-mock-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mock credit line API for the Atlas product engineering take-home. No dependencies.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
