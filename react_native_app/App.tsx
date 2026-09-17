@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 
 import { ApiClient, ApiResult, JsonObject, Persona, personas } from './src/apiClient';
-import { color, radius, space, type } from './src/tokens';
+import { color, radius, radiusButton, shadow, space, type } from './src/tokens';
 
 type Screen =
   | { name: 'home'; refreshKey: number }
@@ -45,6 +45,14 @@ function money(cents: number) {
 
 function moneyWhole(cents: number) {
   return wholeCurrency.format(cents / 100);
+}
+
+function personaInitials(persona: string) {
+  const parts = persona.split('-');
+  if (parts.length === 1) {
+    return persona.slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 function optionalNumber(object: JsonObject | null, key: string) {
@@ -167,9 +175,11 @@ export default function App() {
     }));
   };
 
+  const isHome = screen.name === 'home';
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={[styles.safeArea, isHome && styles.safeAreaHome]}>
+      <StatusBar style={isHome ? 'light' : 'dark'} />
       {screen.name === 'home' ? (
         <HomePage
           api={api}
@@ -254,9 +264,10 @@ function HomePage({
 
   const limit = numberField(account, 'limit_cents');
   const spent = numberField(account, 'balance_cents');
+  const pending = numberField(account, 'pending_holds_cents');
+  const available = Math.max(0, limit - spent - pending);
   const maxEligible = optionalNumber(account, 'max_eligible_limit_cents');
   const alreadyRequested = account?.increase_request != null;
-  const range = increaseRange(limit, maxEligible);
   const showIncrease = !alreadyRequested;
 
   const onIncreasePress = () => {
@@ -264,71 +275,79 @@ function HomePage({
   };
 
   return (
-    <View style={styles.page}>
-      <Text style={type.title}>Your credit line</Text>
-      <View style={styles.topGap} />
+    <View style={styles.homeRoot}>
+      <View style={styles.homeHeader}>
+        <Text style={styles.homeLogo}>A</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={'Current persona: ' + persona}
+          onPress={() => setPersonaOpen(true)}
+          style={styles.personaChip}
+        >
+          <Text style={styles.personaChipText}>{personaInitials(persona)}</Text>
+        </Pressable>
+      </View>
 
       {loading ? (
-        <View style={styles.centered}>
+        <View style={[styles.homeSheet, styles.centered]}>
           <ActivityIndicator color={color.accent} />
         </View>
       ) : error ? (
-        <View style={styles.centered}>
+        <View style={[styles.homeSheet, styles.centered]}>
           <Text style={[type.bodyMuted, styles.centerText]}>{error}</Text>
           <View style={styles.mediumGap} />
           <SecondaryButton label="Retry" onPress={() => setReloadKey((value) => value + 1)} />
         </View>
       ) : (
-        <View style={styles.flex}>
-          {showIncrease ? (
-            <View>
-              <PrimaryButton label="Increase" onPress={onIncreasePress} />
-              {showWhatsNewTip ? (
-                <View style={styles.helptipWrap}>
-                  <View style={styles.helptipCaret} />
-                  <View style={styles.helptipBubble}>
-                    <Text style={[type.label, styles.helptipKicker]}>WHAT'S NEW</Text>
-                    <View style={styles.tinyGap} />
-                    <Text style={type.body}>
-                      You can now request a credit line increase from this screen.
-                    </Text>
-                    <View style={styles.smallGap} />
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Dismiss what's new tip"
-                      onPress={onDismissWhatsNewTip}
-                      hitSlop={8}
-                    >
-                      <Text style={styles.link}>Got it</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : null}
+        <View style={styles.homeSheet}>
+          <View style={styles.homeSheetInner}>
+          <View style={styles.productCard}>
+            <View style={styles.productTitleRow}>
+              <View style={styles.cardGlyph}>
+                <View style={styles.cardGlyphChip} />
+              </View>
+              <Text style={styles.productTitle}>Credit Card</Text>
             </View>
-          ) : null}
-          <View style={styles.mediumGap} />
-          <View style={styles.card}>
-            <AccountRow label="Credit limit" value={money(limit)} />
+            <Text style={styles.heroAmount}>{money(available)}</Text>
+            <Text style={styles.availableCaption}>Available to spend</Text>
+            <View style={styles.heroGap} />
+            <AccountRow label="Current balance" value={money(spent)} />
             <View style={styles.divider} />
-            <AccountRow label="Spent" value={money(spent)} />
-            <View style={styles.divider} />
-            <AccountRow label="Room to increase" value={moneyWhole(range.remainingCents)} />
+            <AccountRow label="Pending" value={money(pending)} />
+            <Text style={styles.rowHint}>Will settle in 1–3 business days</Text>
+            {showIncrease ? (
+              <>
+                <View style={styles.mediumGap} />
+                <View style={styles.increaseCluster}>
+                  <IncreaseLimitButton onPress={onIncreasePress} />
+                  {showWhatsNewTip ? (
+                    <View style={styles.helptipWrap}>
+                      <View style={styles.helptipCaret} />
+                      <View style={styles.helptipBubble}>
+                        <Text style={[type.label, styles.helptipKicker]}>What's new</Text>
+                        <View style={styles.tinyGap} />
+                        <Text style={type.body}>
+                          You can now request a credit line increase from this screen.
+                        </Text>
+                        <View style={styles.smallGap} />
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Dismiss what's new tip"
+                          onPress={onDismissWhatsNewTip}
+                          hitSlop={8}
+                        >
+                          <Text style={styles.link}>Got it</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
+              </>
+            ) : null}
           </View>
         </View>
+        </View>
       )}
-
-      <View style={styles.personaRow}>
-        <Text style={type.label}>PERSONA</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={'Current persona: ' + persona}
-          onPress={() => setPersonaOpen(true)}
-          style={styles.personaButton}
-        >
-          <Text numberOfLines={1} style={type.small}>{persona}</Text>
-          <View style={styles.chevron} />
-        </Pressable>
-      </View>
 
       <Modal
         animationType="fade"
@@ -409,7 +428,7 @@ function RequestPage({
       <View style={styles.topGap} />
       {range.canRequest ? (
         <View style={styles.card}>
-          <Text style={[type.label, styles.centerText]}>INCREASE BY</Text>
+          <Text style={[type.label, styles.centerText]}>Increase by</Text>
           <View style={styles.tinyGap} />
           <Text style={[type.display, styles.centerText]}>{moneyWhole(increase)}</Text>
           {singleAmount ? (
@@ -487,9 +506,9 @@ function RequestPage({
       </View>
       {showEligibleOverlay ? (
         <BlurView intensity={55} tint="light" style={styles.eligibleOverlay}>
-          <View style={styles.eligibleOverlayInner}>
+          <View style={[styles.card, styles.eligibleOverlayInner]}>
             <Text style={[type.label, styles.centerText, styles.approvedKicker]}>
-              YOU'RE ELIGIBLE
+              You're eligible
             </Text>
             <View style={styles.smallGap} />
             <Text style={[type.title, styles.centerText, styles.approvedHeadline]}>
@@ -556,7 +575,7 @@ function ResultPage({
         <View style={styles.resultTopGap} />
         {approved ? (
           <>
-            <Text style={[type.label, styles.centerText, styles.approvedKicker]}>APPROVED</Text>
+            <Text style={[type.label, styles.centerText, styles.approvedKicker]}>Approved</Text>
             <View style={styles.tinyGap} />
             <Text style={[type.title, styles.centerText, styles.approvedHeadline]}>{headline}</Text>
             <View style={styles.smallGap} />
@@ -621,9 +640,9 @@ function HelpLink({ label, url }: { label: string; url: string }) {
 
 const CONFETTI_COLORS = [
   color.accent,
+  color.navy,
   color.positive,
   color.warning,
-  color.critical,
   '#E8B931',
   color.accentSoft,
 ];
@@ -732,7 +751,7 @@ function ConfettiPiece({
 function AccountRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.accountRow}>
-      <Text style={type.bodyMuted}>{label}</Text>
+      <Text style={type.label}>{label}</Text>
       <Text style={type.numeric}>{value}</Text>
     </View>
   );
@@ -748,6 +767,22 @@ function BackButton({ onPress }: { onPress: () => void }) {
       style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
     >
       <Text style={styles.backGlyph}>‹</Text>
+    </Pressable>
+  );
+}
+
+function IncreaseLimitButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Increase Limit"
+      onPress={onPress}
+      style={({ pressed }) => [styles.actionItem, pressed && styles.pressed]}
+    >
+      <View style={styles.actionCircle}>
+        <Text style={styles.actionGlyph}>↗</Text>
+      </View>
+      <Text style={styles.actionLabel}>Increase Limit</Text>
     </Pressable>
   );
 }
@@ -784,7 +819,7 @@ function SecondaryButton({ label, onPress }: { label: string; onPress: () => voi
       onPress={onPress}
       style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
     >
-      <Text style={type.body}>{label}</Text>
+      <Text style={styles.secondaryButtonText}>{label}</Text>
     </Pressable>
   );
 }
@@ -794,6 +829,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: color.paper,
     overflow: 'hidden',
+  },
+  safeAreaHome: {
+    backgroundColor: color.accent,
+  },
+  homeRoot: {
+    flex: 1,
+  },
+  homeHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.s5,
+    paddingVertical: space.s3,
+  },
+  homeLogo: {
+    color: color.accentInk,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  homeSheet: {
+    backgroundColor: color.paper,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    flex: 1,
+    padding: space.s5,
+  },
+  homeSheetInner: {
+    alignSelf: 'center',
+    maxWidth: 430,
+    width: '100%',
   },
   resultRoot: {
     flex: 1,
@@ -818,18 +884,90 @@ const styles = StyleSheet.create({
   mediumGap: { height: space.s4 },
   smallGap: { height: space.s2 },
   tinyGap: { height: space.s1 },
-  card: {
+  heroGap: { height: space.s5 },
+  productCard: {
+    ...shadow,
     backgroundColor: color.surface,
-    borderColor: color.rule,
     borderRadius: radius,
-    borderWidth: 1,
-    padding: space.s4,
+    padding: space.s5,
+  },
+  productTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: space.s2,
+    marginBottom: space.s3,
+  },
+  cardGlyph: {
+    backgroundColor: color.navy,
+    borderRadius: 6,
+    height: 22,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    width: 28,
+  },
+  cardGlyphChip: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 2,
+    height: 8,
+    width: 10,
+  },
+  productTitle: {
+    ...type.heading,
+    fontWeight: '600',
+  },
+  heroAmount: {
+    ...type.display,
+    fontSize: 40,
+    letterSpacing: -1,
+    lineHeight: 44,
+  },
+  availableCaption: {
+    ...type.small,
+    color: color.accent,
+    fontWeight: '500',
+    marginTop: space.s1,
+  },
+  rowHint: {
+    ...type.small,
+    marginTop: space.s1,
+  },
+  actionItem: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    width: 88,
+  },
+  actionCircle: {
+    alignItems: 'center',
+    backgroundColor: color.accentSoft,
+    borderRadius: 28,
+    height: 56,
+    justifyContent: 'center',
+    width: 56,
+  },
+  actionGlyph: {
+    color: color.accent,
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  actionLabel: {
+    ...type.small,
+    color: color.ink,
+    fontWeight: '500',
+    marginTop: space.s2,
+    textAlign: 'center',
+  },
+  increaseCluster: {
+    alignSelf: 'flex-start',
+  },
+  card: {
+    ...shadow,
+    backgroundColor: color.surface,
+    borderRadius: radius,
+    padding: space.s5,
   },
   declineCard: {
     backgroundColor: color.criticalSoft,
-    borderColor: color.rule,
     borderRadius: radius,
-    borderWidth: 1,
     padding: space.s4,
   },
   accountRow: {
@@ -840,15 +978,15 @@ const styles = StyleSheet.create({
   divider: {
     backgroundColor: color.rule,
     height: 1,
-    marginVertical: space.s4 / 2,
+    marginVertical: space.s4,
   },
   primaryButton: {
     alignItems: 'center',
     backgroundColor: color.accent,
-    borderRadius: radius,
+    borderRadius: radiusButton,
     justifyContent: 'center',
-    minHeight: 46,
-    paddingHorizontal: space.s4,
+    minHeight: 48,
+    paddingHorizontal: space.s5,
     paddingVertical: space.s3,
   },
   primaryButtonDisabled: { opacity: 0.45 },
@@ -858,11 +996,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   secondaryButton: {
-    borderColor: color.rule,
-    borderRadius: radius,
-    borderWidth: 1,
-    paddingHorizontal: space.s4,
-    paddingVertical: space.s2,
+    alignItems: 'center',
+    backgroundColor: color.surface,
+    borderColor: color.accentSoft,
+    borderRadius: radiusButton,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: space.s5,
+    paddingVertical: space.s3,
+  },
+  secondaryButtonText: {
+    ...type.body,
+    color: color.accent,
+    fontWeight: '600',
   },
   pressed: { opacity: 0.72 },
   slider: {
@@ -877,16 +1024,17 @@ const styles = StyleSheet.create({
   link: {
     ...type.body,
     color: color.accent,
-    textDecorationLine: 'underline',
+    fontWeight: '600',
   },
   approvedKicker: {
-    color: color.positive,
+    color: color.accent,
+    fontWeight: '600',
   },
   approvedHeadline: {
-    color: color.positive,
+    color: color.ink,
   },
   approvedLimit: {
-    color: color.positive,
+    color: color.ink,
   },
   confettiLayer: {
     position: 'absolute',
@@ -914,57 +1062,47 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 36,
   },
-  personaRow: {
+  personaChip: {
     alignItems: 'center',
-    flexDirection: 'row',
+    backgroundColor: color.surface,
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
   },
-  personaButton: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    minHeight: 40,
-  },
-  chevron: {
-    borderBottomColor: color.ink2,
-    borderBottomWidth: 2,
-    borderRightColor: color.ink2,
-    borderRightWidth: 2,
-    height: 8,
-    marginLeft: space.s2,
-    marginTop: -4,
-    transform: [{ rotate: '45deg' }],
-    width: 8,
+  personaChipText: {
+    color: color.ink,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   modalBackdrop: {
     alignItems: 'center',
-    backgroundColor: 'rgba(20, 24, 27, 0.35)',
+    backgroundColor: 'rgba(22, 22, 29, 0.4)',
     flex: 1,
     justifyContent: 'center',
     padding: space.s5,
   },
   personaMenu: {
+    ...shadow,
     backgroundColor: color.surface,
-    borderColor: color.rule,
     borderRadius: radius,
-    borderWidth: 1,
     maxWidth: 420,
     padding: space.s4,
     width: '100%',
   },
   personaOption: {
-    borderRadius: radius,
+    borderRadius: radiusButton,
     minHeight: 44,
     paddingHorizontal: space.s3,
     paddingVertical: space.s3,
   },
   personaOptionSelected: { backgroundColor: color.accentSoft },
   helptipWrap: {
-    alignItems: 'center',
-    alignSelf: 'center',
+    alignItems: 'flex-start',
     marginTop: space.s2,
-    maxWidth: 320,
-    width: '100%',
+    maxWidth: 260,
+    width: 260,
   },
   helptipCaret: {
     backgroundColor: color.surface,
@@ -973,11 +1111,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     height: 10,
     marginBottom: -6,
+    marginLeft: 39,
     transform: [{ rotate: '45deg' }],
     width: 10,
     zIndex: 1,
   },
   helptipBubble: {
+    ...shadow,
     backgroundColor: color.surface,
     borderColor: color.rule,
     borderRadius: radius,
@@ -987,6 +1127,7 @@ const styles = StyleSheet.create({
   },
   helptipKicker: {
     color: color.accent,
+    fontWeight: '600',
   },
   eligibleOverlay: {
     position: 'absolute',
@@ -1003,3 +1144,4 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 });
+
